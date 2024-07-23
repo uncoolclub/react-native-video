@@ -16,7 +16,7 @@ import type {
   ImageResizeMode,
 } from 'react-native';
 
-import NativeVideoComponent from './specs/VideoNativeComponent';
+import NativeVideoComponent, {NativeCmcd} from './specs/VideoNativeComponent';
 import type {
   OnAudioFocusChangedData,
   OnAudioTracksData,
@@ -44,12 +44,14 @@ import {
 } from './utils';
 import NativeVideoManager from './specs/NativeVideoManager';
 import type {VideoSaveData} from './specs/NativeVideoManager';
-import {ViewType} from './types';
+import {CmcdMode, ViewType} from './types';
 import type {
   OnLoadData,
   OnTextTracksData,
   OnReceiveAdEventData,
   ReactVideoProps,
+  CmcdData,
+  CmcdObject,
 } from './types';
 
 export interface VideoRef {
@@ -67,6 +69,30 @@ export interface VideoRef {
   getCurrentPosition: () => Promise<number>;
 }
 
+const CMCD_KEYS: Array<keyof CmcdObject> = [
+  'object',
+  'session',
+  'request',
+  'status',
+];
+
+/**
+ * Custom key names MUST carry a hyphenated prefix to ensure that there will not be a
+ * namespace collision with future revisions to this specification. Clients SHOULD
+ * use a reverse-DNS syntax when defining their own prefix.
+ *
+ * @see https://cdn.cta.tech/cta/media/media/resources/standards/pdfs/cta-5004-final.pdf CTA-5004 Specification (Page 6, Section 3.1)
+ */
+const validateCMCDKeys = (field: keyof CmcdObject, data: CmcdData) => {
+  Object.keys(data).forEach((key) => {
+    if (!key.includes('-')) {
+      throw new Error(
+        `CMCD ${field} key "${key}" should include a hyphen (-).`,
+      );
+    }
+  });
+};
+
 const Video = forwardRef<VideoRef, ReactVideoProps>(
   (
     {
@@ -77,6 +103,7 @@ const Video = forwardRef<VideoRef, ReactVideoProps>(
       posterResizeMode,
       renderLoader,
       drm,
+      cmcd,
       textTracks,
       selectedVideoTrack,
       selectedAudioTrack,
@@ -141,6 +168,35 @@ const Video = forwardRef<VideoRef, ReactVideoProps>(
       _restoreUserInterfaceForPIPStopCompletionHandler,
       setRestoreUserInterfaceForPIPStopCompletionHandler,
     ] = useState<boolean | undefined>();
+
+    const _cmcd = useMemo<NativeCmcd | undefined>(() => {
+      if (Platform.OS !== 'android' || !cmcd) {
+        return undefined;
+      }
+
+      if (typeof cmcd === 'boolean') {
+        return cmcd ? {mode: CmcdMode.MODE_QUERY_PARAMETER} : undefined;
+      }
+
+      CMCD_KEYS.forEach((field) => {
+        const data = cmcd[field];
+        if (data && typeof data === 'object') {
+          validateCMCDKeys(field, data);
+        }
+      });
+
+      return {
+        mode: cmcd.mode ?? CmcdMode.MODE_QUERY_PARAMETER,
+        request: cmcd.request
+          ? generateHeaderForNative(cmcd.request)
+          : undefined,
+        session: cmcd.session
+          ? generateHeaderForNative(cmcd.session)
+          : undefined,
+        object: cmcd.object ? generateHeaderForNative(cmcd.object) : undefined,
+        status: cmcd.status ? generateHeaderForNative(cmcd.status) : undefined,
+      };
+    }, [cmcd]);
 
     const src = useMemo<VideoSrc | undefined>(() => {
       if (!source) {
@@ -685,6 +741,7 @@ const Video = forwardRef<VideoRef, ReactVideoProps>(
             _restoreUserInterfaceForPIPStopCompletionHandler
           }
           textTracks={textTracks}
+          cmcd={_cmcd}
           selectedTextTrack={_selectedTextTrack}
           selectedAudioTrack={_selectedAudioTrack}
           selectedVideoTrack={_selectedVideoTrack}

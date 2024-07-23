@@ -87,6 +87,20 @@ export type Drm = Readonly<{
   /* eslint-enable @typescript-eslint/no-unused-vars */
 }>;
 
+export enum CmcdMode {
+  MODE_REQUEST_HEADER = 0,
+  MODE_QUERY_PARAMETER = 1,
+}
+export type CmcdData = Record<string, string | number>;
+export type CmcdObject = Readonly<{
+  mode?: CmcdMode; // default: MODE_QUERY_PARAMETER
+  request?: CmcdData;
+  session?: CmcdData;
+  object?: CmcdData;
+  status?: CmcdData;
+}>;
+export type Cmcd = boolean | CmcdObject;
+
 export enum BufferingStrategyType {
   DEFAULT = 'Default',
   DISABLE_BUFFERING = 'DisableBuffering',
@@ -230,6 +244,7 @@ export interface ReactVideoProps extends ReactVideoEvents, ViewProps {
   source?: ReactVideoSource;
   /** @deprecated */
   drm?: Drm;
+  cmcd?: Cmcd; // Andoird
   style?: StyleProp<ViewStyle>;
   adTagUrl?: string;
   audioOutput?: AudioOutput; // Mobile

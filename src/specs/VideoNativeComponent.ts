@@ -61,6 +61,17 @@ type Drm = Readonly<{
   multiDrm?: WithDefault<boolean, false>; // android
 }>;
 
+type CmcdMode = WithDefault<Int32, 1>;
+export type NativeCmcd =
+  | boolean
+  | Readonly<{
+      mode?: CmcdMode; // default: MODE_QUERY_PARAMETER
+      request?: Headers;
+      session?: Headers;
+      object?: Headers;
+      status?: Headers;
+    }>;
+
 type TextTracks = ReadonlyArray<
   Readonly<{
     title: string;
@@ -340,6 +351,7 @@ export interface VideoNativeProps extends ViewProps {
   viewType?: Int32; // Android
   bufferingStrategy?: BufferingStrategyType; // Android
   controlsStyles?: ControlsStyles; // Android
+  cmcd?: NativeCmcd; // Android
   onControlsVisibilityChange?: DirectEventHandler<OnControlsVisibilityChange>;
   onVideoLoad?: DirectEventHandler<OnLoadData>;
   onVideoLoadStart?: DirectEventHandler<OnLoadStartData>;

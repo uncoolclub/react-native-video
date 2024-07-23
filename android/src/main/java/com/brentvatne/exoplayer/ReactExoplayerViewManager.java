@@ -7,6 +7,7 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.media3.exoplayer.upstream.CmcdConfiguration;
 
 import com.brentvatne.common.api.BufferConfig;
 import com.brentvatne.common.api.BufferingStrategy;
@@ -28,6 +29,7 @@ import com.facebook.react.uimanager.ViewGroupManager;
 import com.facebook.react.uimanager.annotations.ReactProp;
 
 import java.util.Map;
+import java.util.Objects;
 
 import javax.annotation.Nullable;
 
@@ -77,6 +79,9 @@ public class ReactExoplayerViewManager extends ViewGroupManager<ReactExoplayerVi
     private static final String PROP_CONTROLS_STYLES = "controlsStyles";
 
     private final ReactExoplayerConfig config;
+
+    private static final String PROP_CMCD = "cmcd";
+    private CMCDConfig prevCmcdConfig = null;
 
     public ReactExoplayerViewManager(ReactExoplayerConfig config) {
         this.config = config;
@@ -342,5 +347,28 @@ public class ReactExoplayerViewManager extends ViewGroupManager<ReactExoplayerVi
     public void setControlsStyles(final ReactExoplayerView videoView, @Nullable ReadableMap controlsStyles) {
         ControlsConfig controlsConfig = ControlsConfig.parse(controlsStyles);
         videoView.setControlsStyles(controlsConfig);
+    }
+
+    @ReactProp(name = "cmcd")
+    public void setCmcdConfig(final ReactExoplayerView videoView, @Nullable ReadableMap cmcdProp) {
+        if (cmcdProp == null) {
+            if (prevCmcdConfig != null) {
+                videoView.setCmcdConfigurationFactory(null);
+                prevCmcdConfig = null;
+            }
+            return;
+        }
+
+        CMCDConfig newCmcdConfig = CMCDConfig.fromReadableMap(cmcdProp);
+
+        Log.e("cmcd", newCmcdConfig.toString())
+        
+        if (Objects.equals(prevCmcdConfig, newCmcdConfig)) {
+            return;
+        }
+
+        CmcdConfiguration.Factory factory = newCmcdConfig.toCmcdConfigurationFactory();
+        videoView.setCmcdConfigurationFactory(factory);
+        prevCmcdConfig = newCmcdConfig;
     }
 }
